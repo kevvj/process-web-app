@@ -61,3 +61,13 @@
     flex-direction: column;
     gap: 20px;
 }
+
+.result{
+    display: flex;
+    gap: 30px;
+}
+.result-list{
+    background-color: black;
+    width: 200px;
+    height: 200px;
+}

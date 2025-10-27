@@ -11,6 +11,9 @@ const page = () => {
     const [processes, setProcesses] = useState(null)
 
     const [TH, setTH] = useState(0)
+    const [quantum, setQuantum] = useState(0)
+
+    const [processQueue, setProcessQueue] = useState([{}])
 
     useEffect(() => {
         fetch(`/api/db?id=${id}`)
@@ -21,8 +24,38 @@ const page = () => {
             })
     }, [id])
 
-    const simulation = () =>{
+    const simulation = async () => {
 
+
+        const newQueue = processes.map((p, index) => ({
+            id: p.pid,
+            TL: index,
+            R: p.description.length
+        }))
+
+        setProcessQueue(newQueue)
+
+        let totalR = newQueue.reduce((acc, p) => acc + p.R, 0)
+
+        console.log(totalR)
+
+        while (totalR >= 0) {
+            totalR = totalR - quantum
+
+            setProcessQueue(prev => prev.map(obj =>
+                obj.id === 1 ? { ...obj, num: 10 } : obj
+            )) // aqui tengo que conseguir una forma de tener el id del que voy a modificar
+
+            
+
+            console.log(totalR)
+            await sleep(TH)
+        }
+
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms))
     }
 
     return (
@@ -52,6 +85,55 @@ const page = () => {
                 ))}
             </div>
 
+            <div className='user-handle'>
+                <div className='input-container'>
+                    <div>TH (tiempo de rafaga) m/s<input
+                        type='number'
+                        value={TH}
+                        onChange={e => {
+                            setTH(e.target.value)
+                        }}
+                    ></input></div>
+                    <div>Quantum <input
+                        type='number'
+                        value={quantum}
+                        onChange={e => {
+                            setQuantum(e.target.value)
+                        }}
+                    ></input></div>
+                </div>
+
+
+                <button className='button' style={{ alignSelf: "center" }}
+                    onClick={() => {
+                        simulation()
+                    }}
+                >Simular</button>
+            </div>
+
+            <div className='result'>
+                <div className='result-item'>
+                    Listado de ejecuciones
+
+                    <div className='result-list'>
+
+                    </div>
+
+                </div>
+                <div className='result-item'>
+                    Lista de espera
+                    <div className='result-list'>
+
+                    </div>
+                </div>
+                <div className='result-item'>
+                    Proceso terminado
+                    <div className='result-list'>
+
+                    </div>
+                </div>
+            </div>
+
             Listado de ejecuciones
 
             <div className='report-table-container'>
@@ -62,7 +144,7 @@ const page = () => {
                 <div className='table-item'>TR</div>
                 <div className='table-item'>TF</div>
 
-                {processes && processes.map((p,index) => (
+                {processes && processes.map((p, index) => (
                     <React.Fragment key={p.id}>
                         <div className='table-item'>{p.name}</div>
                         <div className='table-item'>{index}</div>
@@ -90,15 +172,7 @@ const page = () => {
                 ))}
             </div>
 
-            <div className='user-handle'>
-                <div className='input-container'>
-                    <div>TH (tiempo de rafaga) m/s<input type='number'></input></div>
-                    <div>Quantum <input></input></div>
-                </div>
 
-
-                <button className='button' style={{alignSelf:"center"}}>Simular</button>
-            </div>
 
 
 
