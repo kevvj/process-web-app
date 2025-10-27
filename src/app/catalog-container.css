@@ -20,4 +20,44 @@
     padding: 5px 15px;
     background-color: white;
     border-radius: 5px;
+    cursor: pointer;
+}
+
+.table-container{
+    display: grid;
+    grid-template-columns: 100px 200px 300px 200px 100px;
+    border: 1px solid black;
+}
+
+.report-table-container{
+    display: grid;
+    grid-template-columns: 200px 200px 300px 200px 100px 100px;
+    border: 1px solid black;
+}
+
+.simulation-container{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.table-item{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid black;
+}
+
+.input-container{
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+}
+
+.user-handle{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }

@@ -1,7 +1,10 @@
 // route.js
 import mysql from 'mysql2/promise'
 
-export async function GET() {
+export async function GET(req) {
+
+  const id = req.nextUrl.searchParams.get('id')
+
   const connection = await mysql.createConnection({
     host: 'localhost',
     user: 'root',
@@ -9,6 +12,22 @@ export async function GET() {
     database: 'process-management'
   })
 
-  const [rows] = await connection.execute('SELECT * FROM catalog')
-  return new Response(JSON.stringify(rows), { status: 200 })
+  
+
+  const [catalog] = await connection.execute('SELECT * FROM catalog')
+  const [process] = await connection.execute('SELECT * FROM process')
+
+  const [catalogbyid] = await connection.execute(
+    'SELECT * FROM catalog WHERE id = ?',
+    [id]
+  )
+  const [processesbyid] = await connection.execute(
+    'SELECT * FROM process WHERE catalog_id = ?',
+    [id]
+  )
+
+  await connection.end() 
+
+
+  return new Response(JSON.stringify({ catalog, process, catalogbyid, processesbyid }), { status: 200 })
 }

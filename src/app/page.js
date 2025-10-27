@@ -1,14 +1,18 @@
 'use client'
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
+import { useRouter } from 'next/navigation'
 export default function Home() {
 
   const [data, setData] = useState([])
 
+  const router = useRouter()
+
   useEffect(() => {
     fetch('/api/db')
       .then(res => res.json())
-      .then(setData)
+      .then(d => setData(d.catalog))
   }, [])
+
   return (
     <div>
       <div className="catalog-container">
@@ -19,8 +23,17 @@ export default function Home() {
             <div>Nombre: {p.catalog_name} </div>
             <div>Cantidad de procesos: {p.process_catalog}</div>
 
-            <button style={{alignSelf:'center', marginTop:10}} className="button">Abrir</button>
-            </div>
+            <button
+              style={{ alignSelf: 'center', marginTop: 10 }}
+              className="button"
+              onClick={() => {
+                router.push(`/process-simulation?id=${p.id}`)
+              }}
+            >
+              Abrir
+            </button>
+            
+          </div>
         ))}
 
       </div>
