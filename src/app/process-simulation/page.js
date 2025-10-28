@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { useRouter } from 'next/navigation'
-const page = () => {
+const Page = () => {
     const params = useSearchParams()
     const id = params.get('id')
     const [data, setData] = useState(null)
@@ -401,4 +401,4 @@ const page = () => {
     )
 }
 
-export default page
+export default Page
