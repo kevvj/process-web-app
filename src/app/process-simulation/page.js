@@ -10,10 +10,18 @@ const page = () => {
     const [data, setData] = useState(null)
     const [processes, setProcesses] = useState(null)
 
-    const [TH, setTH] = useState(0)
-    const [quantum, setQuantum] = useState(0)
+    const [TH, setTH] = useState(100)
+    const [quantum, setQuantum] = useState(4)
 
-    const [processQueue, setProcessQueue] = useState([{}])
+    const [runningProcesses, setRunningProcesses] = useState([])
+
+    const [activeProcess, setActiveProcess] = useState([])
+
+    const [finishedProcesses, setFinishedProcesses] = useState([])
+
+    const [currentProcess, setCurrentProcess] = useState({})
+
+    const [waitingProcesses, setWaitingProcesses] = useState([])
 
     useEffect(() => {
         fetch(`/api/db?id=${id}`)
@@ -26,31 +34,136 @@ const page = () => {
 
     const simulation = async () => {
 
+        setActiveProcess([])
+        setCurrentProcess({})
+        setFinishedProcesses([])
+        setRunningProcesses([])
+        setWaitingProcesses([])
+
+        let count = 0
 
         const newQueue = processes.map((p, index) => ({
-            id: p.pid,
+            pid: p.pid,
             TL: index,
-            R: p.description.length
+            R: p.description.length,
+            priority: p.priority,
+            state: "En espera"
         }))
 
-        setProcessQueue(newQueue)
+        setWaitingProcesses(newQueue)
 
         let totalR = newQueue.reduce((acc, p) => acc + p.R, 0)
 
-        console.log(totalR)
+        while (totalR > 0) {
 
-        while (totalR >= 0) {
-            totalR = totalR - quantum
+            for (let i = 0; i < newQueue.length; i++) {
 
-            setProcessQueue(prev => prev.map(obj =>
-                obj.id === 1 ? { ...obj, num: 10 } : obj
-            )) // aqui tengo que conseguir una forma de tener el id del que voy a modificar
+                const ap = newQueue[i]
 
-            
 
-            console.log(totalR)
-            await sleep(TH)
+                if (newQueue[i].R > 0) {
+                    console.log("array normal", newQueue[i])
+
+                    setActiveProcess(p => {
+                        const sinDuplicado = p.filter(item => item.pid !== newQueue[i].pid)
+                        return [newQueue[i], ...sinDuplicado]
+                    })
+
+                    setRunningProcesses(p => p.filter(item => item.pid !== newQueue[i].pid))
+
+                    setCurrentProcess(newQueue[i])
+
+                    newQueue[i].state = "En ejecución"
+
+                }
+
+                let j = 1
+
+                if (newQueue[i].priority === 1) {
+                    while (quantum >= j) {
+
+                        if (newQueue[i].R <= 0) break
+
+
+                        setWaitingProcesses(p => p.filter(d => d.TL >= count))
+
+                        setRunningProcesses(p => {
+                            const nuevos = newQueue.filter(
+                                d => d.TL <= count && d.R > 0 && d.state !== "En ejecución" && !p.some(x => x.pid === d.pid)
+                            )
+                            return [...p, ...nuevos]
+                        })
+
+
+
+
+                        count++
+
+                        const newR = Math.max(ap.R - 1, 0)
+
+                        newQueue[i].R = newR
+
+                        j++
+
+                        if (newQueue[i].R <= 0) {
+                            newQueue[i].state = "Finalizado"
+                            setFinishedProcesses(p => [...p, newQueue[i]])
+
+                            setActiveProcess(p => p.filter(item => item.pid !== newQueue[i].pid))
+                        }
+
+                        console.log("el array cambió", newQueue[i])
+
+                        await sleep(TH)
+                    }
+                } else if (newQueue[i].priority === 0) {
+
+                    while (newQueue[i].R > 0) {
+
+                        if (newQueue[i].R <= 0) break
+
+                        newQueue[i].R--
+
+                        setWaitingProcesses(p => p.filter(d => d.TL >= count))
+
+                        setRunningProcesses(p => {
+                            const nuevos = newQueue.filter(
+                                d => d.TL <= count && d.R > 0 && d.state !== "En ejecución" && !p.some(x => x.pid === d.pid)
+                            )
+                            return [...p, ...nuevos]
+                        })
+
+
+
+
+                        count++
+
+                        const newR = Math.max(ap.R - 1, 0)
+
+                        newQueue[i].R = newR
+
+                        j++
+
+                        if (newQueue[i].R <= 0) {
+                            newQueue[i].state = "Finalizado"
+                            setFinishedProcesses(p => [...p, newQueue[i]])
+
+                            setActiveProcess(p => p.filter(item => item.pid !== newQueue[i].pid))
+                        }
+
+                        console.log("el array cambió", newQueue[i])
+
+                        await sleep(TH)
+                    }
+                }
+
+            }
+
+            totalR = newQueue.reduce((acc, p) => acc + p.R, 0)
+
         }
+
+        setCurrentProcess({})
 
     }
 
@@ -59,9 +172,7 @@ const page = () => {
     }
 
     return (
-        <div onClick={() => {
-            console.log(processes)
-        }} className='simulation-container'>
+        <div className='simulation-container'>
             <div>
                 <div>Nombre del catalogo: {data && data.catalog_name} </div>
                 <div>Numero de procesos guardados: {data && data.process_catalog} </div>
@@ -113,26 +224,56 @@ const page = () => {
 
             <div className='result'>
                 <div className='result-item'>
-                    Listado de ejecuciones
+                    Ejecucion
 
                     <div className='result-list'>
-
+                        {activeProcess && activeProcess.map(ap => (
+                            <React.Fragment key={ap.pid}>
+                                <div>pid: {ap.pid} R: {ap.R}</div>
+                            </React.Fragment>
+                        ))}
                     </div>
 
                 </div>
                 <div className='result-item'>
-                    Lista de espera
+                    Listo
                     <div className='result-list'>
+                        {runningProcesses && runningProcesses.map(rp => (
+                            <React.Fragment key={rp.pid}>
+                                <div>pid: {rp.pid} R: {rp.R}</div>
+                            </React.Fragment>
 
+                        ))}
                     </div>
                 </div>
                 <div className='result-item'>
-                    Proceso terminado
+                    Terminado
                     <div className='result-list'>
+                        {finishedProcesses && finishedProcesses.map(fp => (
+                            <React.Fragment key={fp.pid}>
+                                <div>pid: {fp.pid} R: {fp.R}</div>
+                            </React.Fragment>
 
+                        ))}
                     </div>
                 </div>
+
+                <div className='result-item'>
+                    No han llegado
+                    <div className='result-list'>
+                        {waitingProcesses && waitingProcesses.map(wp => (
+                            <React.Fragment key={wp.pid}>
+                                <div>pid: {wp.pid} R: {wp.R}</div>
+                            </React.Fragment>
+
+                        ))}
+                    </div>
+                </div>
+
+
             </div>
+
+            <div>Proceso que se está ejecutando: {currentProcess.pid}</div>
 
             Listado de ejecuciones
 
