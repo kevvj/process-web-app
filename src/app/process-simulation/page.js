@@ -2,26 +2,32 @@
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
-
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { useRouter } from 'next/navigation'
 const page = () => {
     const params = useSearchParams()
     const id = params.get('id')
-
     const [data, setData] = useState(null)
     const [processes, setProcesses] = useState(null)
-
-    const [TH, setTH] = useState(100)
+    const [TH, setTH] = useState(10)
     const [quantum, setQuantum] = useState(4)
-
     const [runningProcesses, setRunningProcesses] = useState([])
-
     const [activeProcess, setActiveProcess] = useState([])
-
     const [finishedProcesses, setFinishedProcesses] = useState([])
-
     const [currentProcess, setCurrentProcess] = useState({})
-
     const [waitingProcesses, setWaitingProcesses] = useState([])
+
+    const [waiting, setWaiting] = useState([])
+
+    const [finishedTime, setFinishedTime] = useState([])
+
+    const [startedProcess, setStartedProcess] = useState([])
+
+    const [isFinished, setIsFinished] = useState(false)
+
+    const [state, setState] = useState([])
+
+    const router = useRouter()
 
     useEffect(() => {
         fetch(`/api/db?id=${id}`)
@@ -32,6 +38,7 @@ const page = () => {
             })
     }, [id])
 
+
     const simulation = async () => {
 
         setActiveProcess([])
@@ -39,18 +46,31 @@ const page = () => {
         setFinishedProcesses([])
         setRunningProcesses([])
         setWaitingProcesses([])
+        setFinishedTime([])
+        setStartedProcess([])
+        setWaiting([])
 
         let count = 0
+
+        let current = {}
 
         const newQueue = processes.map((p, index) => ({
             pid: p.pid,
             TL: index,
             R: p.description.length,
             priority: p.priority,
-            state: "En espera"
+            state: "No ha llegado",
+            TR: TH * p.description.length,
+            executions: 0,
+            P: "P" + (index + 1),
+            name: p.name
         }))
 
+        setStartedProcess(newQueue)
+
         setWaitingProcesses(newQueue)
+
+
 
         let totalR = newQueue.reduce((acc, p) => acc + p.R, 0)
 
@@ -58,105 +78,102 @@ const page = () => {
 
             for (let i = 0; i < newQueue.length; i++) {
 
+
                 const ap = newQueue[i]
-
-
                 if (newQueue[i].R > 0) {
-                    console.log("array normal", newQueue[i])
 
                     setActiveProcess(p => {
                         const sinDuplicado = p.filter(item => item.pid !== newQueue[i].pid)
                         return [newQueue[i], ...sinDuplicado]
                     })
-
                     setRunningProcesses(p => p.filter(item => item.pid !== newQueue[i].pid))
-
                     setCurrentProcess(newQueue[i])
-
-                    newQueue[i].state = "En ejecución"
+                    current = newQueue[i]
+                    if (newQueue[i].pid === current.pid) setWaiting(p => p.filter(item => item.pid !== newQueue[i].pid))
 
                 }
 
                 let j = 1
 
+                let idp = newQueue[i].pid
                 if (newQueue[i].priority === 1) {
+
+
+                    if (newQueue[i].R > 0) newQueue[i].executions++
+                    newQueue[i].state = "En ejecución"
+
                     while (quantum >= j) {
 
                         if (newQueue[i].R <= 0) break
 
+                        newQueue[i].state = "En ejecución"
+
 
                         setWaitingProcesses(p => p.filter(d => d.TL >= count))
-
                         setRunningProcesses(p => {
                             const nuevos = newQueue.filter(
                                 d => d.TL <= count && d.R > 0 && d.state !== "En ejecución" && !p.some(x => x.pid === d.pid)
                             )
                             return [...p, ...nuevos]
                         })
-
-
-
-
                         count++
-
                         const newR = Math.max(ap.R - 1, 0)
-
                         newQueue[i].R = newR
-
                         j++
-
                         if (newQueue[i].R <= 0) {
-                            newQueue[i].state = "Finalizado"
                             setFinishedProcesses(p => [...p, newQueue[i]])
 
                             setActiveProcess(p => p.filter(item => item.pid !== newQueue[i].pid))
+                            setActiveProcess(p => p.filter(item => item.pid !== newQueue[i].pid))
+
+                            setWaiting(p => p.filter(item => item.pid !== newQueue[i].pid))
+
+                            setFinishedTime(p => [...p, { pid: newQueue[i].pid, count }])
                         }
 
-                        console.log("el array cambió", newQueue[i])
 
                         await sleep(TH)
                     }
+
+                    if (newQueue[i].R > 0) setWaiting(p => p.some(x => x.pid === newQueue[i].pid) ? p : [...p, newQueue[i]])
+                    
+
+
                 } else if (newQueue[i].priority === 0) {
+
+                    if (newQueue[i].R > 0) newQueue[i].executions++
 
                     while (newQueue[i].R > 0) {
 
                         if (newQueue[i].R <= 0) break
 
-                        newQueue[i].R--
+                        newQueue[i].state = "En ejecución"
 
                         setWaitingProcesses(p => p.filter(d => d.TL >= count))
-
                         setRunningProcesses(p => {
                             const nuevos = newQueue.filter(
                                 d => d.TL <= count && d.R > 0 && d.state !== "En ejecución" && !p.some(x => x.pid === d.pid)
                             )
                             return [...p, ...nuevos]
                         })
-
-
-
-
                         count++
-
                         const newR = Math.max(ap.R - 1, 0)
-
                         newQueue[i].R = newR
-
                         j++
-
                         if (newQueue[i].R <= 0) {
-                            newQueue[i].state = "Finalizado"
                             setFinishedProcesses(p => [...p, newQueue[i]])
-
                             setActiveProcess(p => p.filter(item => item.pid !== newQueue[i].pid))
-                        }
+                            setFinishedTime(p => [...p, { pid: newQueue[i].pid, count }])
 
-                        console.log("el array cambió", newQueue[i])
+                            setWaiting(p => p.filter(item => item.pid !== newQueue[i].pid))
+                        }
 
                         await sleep(TH)
                     }
-                }
 
+                    if (newQueue[i].R > 0) setWaiting(p => p.some(x => x.pid === newQueue[i].pid) ? p : [...p, newQueue[i]])
+
+                }
             }
 
             totalR = newQueue.reduce((acc, p) => acc + p.R, 0)
@@ -164,6 +181,38 @@ const page = () => {
         }
 
         setCurrentProcess({})
+        setIsFinished(true)
+
+    }
+
+    const MakeTable = () => {
+        const [data, setData] = useState([
+            { name: 'P1', value: 3 },
+            { name: 'P2', value: 7 },
+            { name: 'P3', value: 5 },
+            { name: 'P4', value: 9 }
+        ])
+
+        useEffect(() => {
+            if (!startedProcess) return
+            const newData = startedProcess.map(d => ({
+                name: d.P,
+                value: d.TR
+            }))
+            setData(newData)
+        }, [startedProcess])
+
+
+
+        return (
+            <LineChart width={data.length * 38} height={250} data={data}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" interval={0} />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="value" stroke="#8884d8" />
+            </LineChart>
+        )
 
     }
 
@@ -222,25 +271,36 @@ const page = () => {
                 >Simular</button>
             </div>
 
+
+
             <div className='result'>
+                <div className='result-item'>
+                    En espera
+
+                    <div className='result-list'>
+                        {waiting && waiting.map((ap, index) => (
+                            <React.Fragment key={ap.pid}>
+                                <div>pid: {ap.pid} R: {ap.R} </div>
+                            </React.Fragment>
+                        ))}
+                    </div>
+
+                </div>
+
                 <div className='result-item'>
                     Ejecucion
 
                     <div className='result-list'>
-                        {activeProcess && activeProcess.map(ap => (
-                            <React.Fragment key={ap.pid}>
-                                <div>pid: {ap.pid} R: {ap.R}</div>
-                            </React.Fragment>
-                        ))}
+                        {currentProcess && <div>pid: {currentProcess.pid} R: {currentProcess.R} </div>}
                     </div>
 
                 </div>
                 <div className='result-item'>
                     Listo
                     <div className='result-list'>
-                        {runningProcesses && runningProcesses.map(rp => (
+                        {runningProcesses && runningProcesses.map((rp, index) => (
                             <React.Fragment key={rp.pid}>
-                                <div>pid: {rp.pid} R: {rp.R}</div>
+                                <div>pid: {rp.pid} R: {rp.R}  </div>
                             </React.Fragment>
 
                         ))}
@@ -249,9 +309,9 @@ const page = () => {
                 <div className='result-item'>
                     Terminado
                     <div className='result-list'>
-                        {finishedProcesses && finishedProcesses.map(fp => (
+                        {finishedProcesses && finishedProcesses.map((fp, index) => (
                             <React.Fragment key={fp.pid}>
-                                <div>pid: {fp.pid} R: {fp.R}</div>
+                                <div>pid: {fp.pid} R: {fp.R} </div>
                             </React.Fragment>
 
                         ))}
@@ -278,21 +338,25 @@ const page = () => {
             Listado de ejecuciones
 
             <div className='report-table-container'>
+                <div className='table-item'></div>
                 <div className='table-item'>P</div>
                 <div className='table-item'>T.L</div>
                 <div className='table-item'>R</div>
                 <div className='table-item'>PR</div>
                 <div className='table-item'>TR</div>
                 <div className='table-item'>TF</div>
+                <div className='table-item'>Numero de ejecuciones</div>
 
                 {processes && processes.map((p, index) => (
                     <React.Fragment key={p.id}>
+                        <div className='table-item'>{startedProcess && startedProcess[index]?.P && startedProcess[index]?.P}</div>
                         <div className='table-item'>{p.name}</div>
                         <div className='table-item'>{index}</div>
                         <div className='table-item'>{p.description.length}</div>
                         <div className='table-item'>{p.priority}</div>
-                        <div className='table-item'>-</div>
-                        <div className='table-item'>-</div>
+                        <div className='table-item'>{startedProcess && startedProcess[index]?.TR}</div>
+                        <div className='table-item'>{startedProcess && startedProcess[index]?.executions && startedProcess[index]?.executions * quantum}</div>
+                        <div className='table-item'>{startedProcess && startedProcess[index]?.executions && startedProcess[index]?.executions}</div>
                     </React.Fragment>
                 ))}
             </div>
@@ -300,23 +364,37 @@ const page = () => {
             Listado de procesos no expulsivos
 
             <div className='report-table-container'>
-                <div className='table-item'>PID</div>
-                <div className='table-item'>Nombre</div>
-                <div className='table-item'>Usuario</div>
-                <div className='table-item'>Descripción</div>
-                <div className='table-item'>Prioridad</div>
+                <div className='table-item'></div>
+                <div className='table-item'>P</div>
+                <div className='table-item'>T.L</div>
+                <div className='table-item'>R</div>
+                <div className='table-item'>PR</div>
+                <div className='table-item'>TR</div>
+                <div className='table-item'>TF</div>
+                <div className='table-item'>Numero de ejecuciones</div>
 
-                {processes && processes.map(p => (
-                    <React.Fragment key={p.id}>
-                        <div className='table-item'>aqui</div>
+                {processes && processes.map((p, index) => (
+                    p.priority === 0 && <React.Fragment key={p.id}>
+                        <div className='table-item'>{startedProcess && startedProcess[index]?.P && startedProcess[index]?.P}</div>
+                        <div className='table-item'>{p.name}</div>
+                        <div className='table-item'>{index}</div>
+                        <div className='table-item'>{p.description.length}</div>
+                        <div className='table-item'>{p.priority}</div>
+                        <div className='table-item'>{startedProcess && startedProcess[index]?.TR}</div>
+                        <div className='table-item'>{startedProcess && startedProcess[index]?.executions && startedProcess[index]?.executions * quantum}</div>
+                        <div className='table-item'>{startedProcess && startedProcess[index]?.executions && startedProcess[index]?.executions}</div>
                     </React.Fragment>
                 ))}
             </div>
 
 
+            {isFinished && <MakeTable></MakeTable>}
 
-
-
+            <div style={{ position: "absolute", top: 40, left: 40, fontSize: 50, color: "gray", cursor: "pointer" }}
+                onClick={() => {
+                    router.push('/')
+                }}
+            >⬅</div>
         </div>
 
 
