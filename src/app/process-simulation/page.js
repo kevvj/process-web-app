@@ -1,13 +1,11 @@
 'use client'
-export const dynamic = 'force-dynamic'
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { useRouter } from 'next/navigation'
 const Page = () => {
-    const params = useSearchParams()
-    const id = params.get('id')
+    const id = 3
     const [data, setData] = useState(null)
     const [processes, setProcesses] = useState(null)
     const [TH, setTH] = useState(10)
