@@ -1,9 +1,13 @@
 'use client'
 import { useEffect, useState } from "react"
 import { useRouter } from 'next/navigation'
+import { useAppContext } from "./context"
+
 export default function Home() {
 
   const [data, setData] = useState([])
+  const { id, setId } = useAppContext()
+  
 
   const router = useRouter()
 
@@ -27,7 +31,8 @@ export default function Home() {
               style={{ alignSelf: 'center', marginTop: 10 }}
               className="button"
               onClick={() => {
-                router.push(`/process-simulation?id=${p.id}`)
+                router.push('/process-simulation')
+                setId(p.id)
               }}
             >
               Abrir

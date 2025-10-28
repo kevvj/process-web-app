@@ -4,8 +4,9 @@ import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { useRouter } from 'next/navigation'
+import { useAppContext } from '../context'
 const Page = () => {
-    const id = 3
+    const { id, setId } = useAppContext()
     const [data, setData] = useState(null)
     const [processes, setProcesses] = useState(null)
     const [TH, setTH] = useState(10)
@@ -135,7 +136,7 @@ const Page = () => {
                     }
 
                     if (newQueue[i].R > 0) setWaiting(p => p.some(x => x.pid === newQueue[i].pid) ? p : [...p, newQueue[i]])
-                    
+
 
 
                 } else if (newQueue[i].priority === 0) {
